@@ -77,7 +77,7 @@ function newTable(
     end
   end
 
-  #Concateno matrice dei prezzi e degli inflow
+  #Concateno matrice dei prezzi e degli inflows
 
   for iMod = 1:HY.NMod
     for iScen = 1:NSimScen
