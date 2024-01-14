@@ -456,9 +456,8 @@ struct Coeff_data
   K_pump::Any
 end
 
-struct newTable
-#  AlphaTable_new
+struct Table_new
   Price_new
   Inflow_new
-#  Min_flows
+  AlphaTable_new
 end

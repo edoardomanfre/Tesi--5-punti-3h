@@ -153,11 +153,13 @@ if runMode.simulate
     ResultsSDP = expand_AlphaTable(ResultsSDP)
   end
 
+  Tables = newTable(InputParameters, ResultsSDP, SimScen, runMode)
+
   @timeit to "Simulation" begin
     if runMode.parallellSim
       ResultsSim = paraSim(InputParameters, SolverParameters, ResultsSDP, SimScen, runMode)
     else
-      ResultsSim = sim(InputParameters, SolverParameters, ResultsSDP, SimScen, runMode   )
+      ResultsSim = sim(InputParameters, SolverParameters, ResultsSDP, SimScen, runMode, Tables)
     end
   end #timer "SDP simulation"  
 

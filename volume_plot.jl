@@ -38,7 +38,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
     concatenation_coeff = zeros(HY.NMod, NSimScen, NStage * (HY.NDSeg[1]-1))
     
     for iMod = 1:HY.NMod
-        for iScen = 1:1#NSimScen
+        for iScen = 1:NSimScen
             for iStage = 1:NStage
                 start_idx = (NStep * (iStage - 1)) + 1
                 end_idx = NStep * iStage
