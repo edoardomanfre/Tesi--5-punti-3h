@@ -443,9 +443,9 @@ struct Head_data
   NVolumes::Any
   Head_upper::Any 
   Head_lower::Any 
-#  max_head::Any
+  max_head::Any
 #  min_head::Any
-  intermediate_head::Any
+#  intermediate_head::Any
 end
 
 struct Coeff_data
@@ -459,5 +459,5 @@ end
 struct Table_new
   Price_new
   Inflow_new
-  AlphaTable_new
+#  AlphaTable_new
 end

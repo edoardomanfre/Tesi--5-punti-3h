@@ -18,9 +18,9 @@ function head_evaluation(
     NMod = parse(Int, items[1]) #set number of modules
     water_volumes_file=zeros(Float64,HY.NMod,21);
     water_levels_file=zeros(Float64,HY.NMod,21);
-    #max_head=zeros(Float64,HY.NMod);
+    max_head=zeros(Float64,HY.NMod);
     #min_head=zeros(Float64,HY.NMod);
-    intermediate_head=zeros(Float64,HY.NMod);
+    #intermediate_head=zeros(Float64,HY.NMod);
     NVolumes=zeros(NMod);
   
     for iMod=1:NMod
@@ -80,7 +80,7 @@ function head_evaluation(
         for n=1:Int(NVolumes[iMod])-1
             
             if iScen == 1
-                if t == 1
+                if j == 1
                     if HY.ResInit0[iMod] == water_volumes_file[iMod,n]
                         Level[iMod] = water_levels_file[iMod,n]
                     elseif HY.ResInit0[iMod] > water_volumes_file[iMod,n] && HY.ResInit0[iMod] < water_volumes_file[iMod,n+1]
@@ -104,7 +104,7 @@ function head_evaluation(
 
                 end
             else
-                if t == 1
+                if j == 1
                     if Reservoir_round[iMod,iScen-1,end] == water_volumes_file[iMod,n]
                         Level[iMod] = water_levels_file[iMod,n]
                     elseif Reservoir_round[iMod,iScen-1,end]> water_volumes_file[iMod,n] && Reservoir_round[iMod,iScen-1,end]< water_volumes_file[iMod,n+1]

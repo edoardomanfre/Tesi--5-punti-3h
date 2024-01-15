@@ -93,7 +93,7 @@ function newTable(
 
   #Concateno matrice AlphaTable
 
-  for iScen = 1:NSimScen
+#=  for iScen = 1:NSimScen
     for t = 1:NStage
       for iStep = 1:NStep
         if t == 1
@@ -105,9 +105,9 @@ function newTable(
         end
       end
     end 
-  end
+  end=#
 
-  return Table_new(Price_new, Inflow_new, AlphaTable_new)          
+  return Table_new(Price_new, Inflow_new)#, AlphaTable_new)          
 
 end            
 
@@ -124,7 +124,7 @@ function sim(
   @unpack (scenarios, scenStates) = SimScen
   @unpack NStep, NStage, NSimScen, StepFranc, NHoursStep ,Big , LimitPump= InputParameters
   @unpack envConst, solveMIP, ramping_constraints = runMode
-  @unpack Price_new, Inflow_new, AlphaTable_new = Tables
+  @unpack Price_new, Inflow_new = Tables#, AlphaTable_new = Tables
 
 
   println("Simulating, ", NSimScen, " scenarios...")                           
@@ -184,6 +184,8 @@ function sim(
     append!(disSeg, [zeros(NSimScen, NStage*NStep, (HY.NDSeg[iMod]-1))])           #Aggiungo al vettore disSeg , due matrici nulle - una per ogni reservoir, con i dati dei segmenti
   end
 
+  subset_price = 0
+
   MIP_counter = 0
   nProblems = 0
   for iScen = 1:NSimScen                                                        #Comincio a calcolare i valori per i 100 scenari, cominciando da iScen=1 (ordine cronologico)
@@ -191,13 +193,15 @@ function sim(
     add_dischargeLimitPump = false
     SP = BuildProblem_sim(InputParameters, HY, SolverParameters)                    #Function to build model in "stageprob"
     print("Scen:", iScen)
-    for j = 1:NStep * (NStage - 1)
+    for j = 1:NStep * NStage
       start_index = j
-      end_index = j + NStep                                                           
-      if t == 1
-        subset_price = Price_new[:,:,1:NStep]
-      else
-        subset_price = Price_new[:,:,start_index:end_index]
+      end_index = j + NStep 
+      for t = 1:NStage                                                          
+        if t == 1
+          subset_price = Price_new[:,1:NStep]
+        else
+          subset_price = Price_new[:,start_index:end_index]
+        end
       end
 
       Head = head_evaluation(case,Reservoir_round,HY,iScen,j)
@@ -260,13 +264,13 @@ function sim(
         set_objective_coefficient(
           SP.model,                                                           #SP e' il modello
           SP.prod[iMod, j],                                               #Davanti alla variabile prod[iMod, iStep]= produzione(MW) nel bacino iMod allo step iStep(1:3)
-          NHoursStep * Price[j],                                          #Variabile che devo aggiungere (fattore_conversione*prezzo[iStep])
+          NHoursStep * subset_price[j],                                          #Variabile che devo aggiungere (fattore_conversione*prezzo[iStep])
         )
         
         set_objective_coefficient(
           SP.model,                                                           #Stessa cosa per la pompa: aggiorno la vraiabile prezzo
           SP.pump[iMod, j],                                                                             
-          -NHoursStep * Price[j],                                         #Variabile che devo aggiungere (fattore_conversione*prezzo[iStep])
+          -NHoursStep * subset_price[j],                                         #Variabile che devo aggiungere (fattore_conversione*prezzo[iStep])
         )
 
         #=set_objective_coefficient(
@@ -280,15 +284,15 @@ function sim(
             HY.MaxRes[iMod] * 0.2,   
           )
 
-        if iStep > 1                                                          #Se siamo agli step 2 e 3
+        if iStep > 1                                                          #Qui non devo più considerare iStep. Tolgo il ciclo for??????
           JuMP.set_normalized_rhs(
-            SP.resbalStep[iMod, j],                                       #Per reservoir balance constraint in "stageprob" linea 78
-            Inflow_new[iMod, iScen, start_index:end_index],   #StepFranc*inflow(allo scenario iScen,settimana t) * scala(n.bacino)
+            SP.resbalStep[iMod, j],                                     
+            Inflow_new[iMod, iScen, j],   
           )
         end
         #StepFranc[t,1:NStep]
 
-        for n=1:(HY.N_min_flows[iMod]-1)                                      #Cambio il valore di qMin: per determinate settimane ho valori diversi da 0
+        for n=1:(HY.N_min_flows[iMod]-1)                                      #Qui ho un valore costante di qmin. Dunque ciclo for va eliminato
           HY.qMin[iMod]= HY.Min_flows[iMod,n]
           JuMP.set_normalized_rhs(SP.q_min[iMod, j], HY.qMin[iMod])
         end
@@ -301,24 +305,24 @@ function sim(
           if t == 1                                                       
             JuMP.set_normalized_rhs(
               SP.resbalInit[iMod],
-              HY.ResInit0[iMod] + Inflow_new[iMod, iScen, 1:NStep]
+              HY.ResInit0[iMod] + Inflow_new[iMod, iScen, 1]
             ) #StepFranc
           else                                                                 
             JuMP.set_normalized_rhs(
               SP.resbalInit[iMod],
-              Reservoir[iMod, iScen, start_index:end_index] + Inflow_new[iMod, iScen, start_index:end_index],
+              Reservoir[iMod, iScen, j] + Inflow_new[iMod, iScen, j],
             ) 
           end
         else 
           if t == 1                                                            
             JuMP.set_normalized_rhs(
               SP.resbalInit[iMod],
-              Reservoir[iMod, iScen-1, end] + Inflow_new[iMod, iScen-1, end], #NON SO SE SIA GIUSTO!!!!!
+              Reservoir[iMod, iScen-1, end] + Inflow_new[iMod, iScen-1, end], 
             ) 
           else
             JuMP.set_normalized_rhs(
               SP.resbalInit[iMod],
-              Reservoir[iMod, iScen, start_index:end_index] + Inflow_new[iMod, iScen, start_index:end_index],
+              Reservoir[iMod, iScen, j] + Inflow_new[iMod, iScen, j],
             ) 
           end 
         end                                                                    
