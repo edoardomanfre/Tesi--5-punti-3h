@@ -459,5 +459,6 @@ end
 struct Table_new
   Price_new
   Inflow_new
-#  AlphaTable_new
+  AlphaTable_new
+  WVTable_new
 end

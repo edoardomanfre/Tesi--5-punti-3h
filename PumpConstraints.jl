@@ -1,10 +1,10 @@
 # DEPENDENCE ON DOWNSTREAM WATER LEVEL
 
-function DeactivationPump_sim(SP,iScen,t,HY,Reservoir,limit,NStep)
+function DeactivationPump_sim(SP,iScen,j,HY,Reservoir,limit,NStep)
 
     reservoir = 0
 
-    if t==1 
+    if j==1 
         if iScen==1
             if HY.ResInit0[2] <= limit  #52
                 for iStep=1:NStep
@@ -23,37 +23,37 @@ function DeactivationPump_sim(SP,iScen,t,HY,Reservoir,limit,NStep)
                 end
             end
         else    #iScen>1
-            if Reservoir[2,iScen-1,end,end] <= limit
+            if Reservoir[2,iScen-1,end] <= limit
                 for iStep=1:NStep
                     #JuMP.set_normalized_rhs(SP.pumpdischarge[tSeg,iStep],0)     
                     JuMP.set_normalized_rhs(SP.maxReleasePump[iStep],0)
-                    reservoir = Reservoir[2,iScen-1,end,end]
+                    reservoir = Reservoir[2,iScen-1,end]
                     #SP = add_disLimitPump(SP,NStep)
                 end
-            elseif Reservoir[2,iScen-1,end,end] > limit
+            elseif Reservoir[2,iScen-1,end] > limit
                 for iStep=1:NStep
                     #JuMP.set_normalized_rhs(SP.pumpdischarge[tSeg,iStep],HY.DisMaxSegPump[tSeg]) 
 #                    JuMP.set_normalized_rhs(SP.maxReleasePump[iStep], sum(HY.DisMaxSegPump[tSeg] for tSeg = 1:HY.NDSegPump))
                     JuMP.set_normalized_rhs(SP.maxReleasePump[iStep], HY.DisPointPump[2])
-                    reservoir = Reservoir[2,iScen-1,end,end]
+                    reservoir = Reservoir[2,iScen-1,end]
                     #SP= relax_disLimitPump(SP,NStep)
                 end
             end
         end
     else    #if t>1 50 scen4
-        if Reservoir[2,iScen,t-1,end] <= limit
+        if Reservoir[2,iScen,j-1] <= limit
            for iStep=1:NStep
                 #JuMP.set_normalized_rhs(SP.pumpdischarge[tSeg,iStep],0)
                 JuMP.set_normalized_rhs(SP.maxReleasePump[iStep],0)
-                reservoir = Reservoir[2,iScen,t-1,end]
+                reservoir = Reservoir[2,iScen,j-1]
                 #SP = add_disLimitPump(SP,NStep)
             end
-        elseif Reservoir[2,iScen,t-1,end] > limit
+        elseif Reservoir[2,iScen,j-1] > limit
             for iStep=1:NStep
                # JuMP.set_normalized_rhs(SP.pumpdischarge[tSeg,iStep],HY.DisMaxSegPump[tSeg])
 #                JuMP.set_normalized_rhs(SP.maxReleasePump[iStep], sum(HY.DisMaxSegPump[tSeg] for tSeg = 1:HY.NDSegPump))
                 JuMP.set_normalized_rhs(SP.maxReleasePump[iStep], HY.DisPointPump[2])
-                reservoir = Reservoir[2,iScen,t-1,end]
+                reservoir = Reservoir[2,iScen,j-1]
                 #SP= relax_disLimitPump(SP,NStep)
             end
         end
