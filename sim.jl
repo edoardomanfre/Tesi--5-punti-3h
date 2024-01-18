@@ -11,29 +11,25 @@
 #---------------------------------------------------------------------------------------------
 
 
-function update_future_value_constraint_sim(SP, AlphaTable_new, NSeg, NSimScen, j)
+function update_future_value_constraint_sim(SP, AlphaTable_new, NSeg, iScen, j)
 
   if HY.NMod == 2
-    for iScen = 1:NSimScen-1
-      for iSegL = 1:NSeg[2]                                  # iSegL = 1:NSeg[2]
-        for iSegU = 1:NSeg[1]                                # iSegU = 1:NSeg[1]
-          JuMP.set_normalized_coefficient(
-            SP.AlphaCon,
-            SP.gamma[iSegU, iSegL],
-            -AlphaTable_new[iScen, j, (NSeg[1]*(iSegL-1)+iSegU)],       #NSeg[1]
-          )
-        end
+    for iSegL = 1:NSeg[2]                                  # iSegL = 1:NSeg[2]
+      for iSegU = 1:NSeg[1]                                # iSegU = 1:NSeg[1]
+        JuMP.set_normalized_coefficient(
+          SP.AlphaCon,
+          SP.gamma[iSegU, iSegL],
+          -AlphaTable_new[iScen, j, (NSeg[1]*(iSegL-1)+iSegU)],       #NSeg[1]
+        )
       end
     end
   elseif HY.NMod == 1
-    for iScen = 1:NSimScen-1
-      for iSeg = 1:NSeg[1]                                           #NSeg[1]
-        JuMP.set_normalized_coefficient(
-          SP.AlphaCon,
-          SP.gamma[iSeg],
-          -AlphaTable_new[iScen, j, iSeg],
-        )
-      end
+    for iSeg = 1:NSeg[1]                                           #NSeg[1]
+      JuMP.set_normalized_coefficient(
+        SP.AlphaCon,
+        SP.gamma[iSeg],
+        -AlphaTable_new[iScen, j, iSeg],
+      )
     end
   else
     error("Number of modules not supported.")
@@ -56,9 +52,9 @@ function newTable(
   @unpack envConst = runMode 
 
   Price = zeros(NSimScen, NStage, NStep)
-  Price_new = zeros(NSimScen, NStep * NStage)
+  Price_new = zeros(NSimScen, NStep * NStage + (NStep-1))
   Inflow = zeros(HY.NMod, NSimScen, NStage,NStep)
-  Inflow_new = zeros(HY.NMod, NSimScen, NStep * NStage)
+  Inflow_new = zeros(HY.NMod, NSimScen, NStep * NStage + (NStep-1))
   AlphaTable_new = zeros(NSimScen, NStep * NStage, length(ResSeg))
   WVTable_new = zeros(NSimScen, NStep * NStage, length(ResSeg), HY.NMod) 
 
@@ -86,14 +82,14 @@ function newTable(
     for iStage = 1:NStage
       start_idx = (NStep * (iStage - 1)) + 1
       end_idx = NStep * iStage
-      Price_new[iScen, start_idx:end_idx] = Price[iScen, iStage, :] #Servono solo i primi 55 e no 56 da concatenare dello scenario 101
+      Price_new[iScen, start_idx:end_idx] = Price[iScen, iStage, :] 
       for iMod = 1:HY.NMod
-        Inflow_new[iMod, iScen, start_idx:end_idx] = Inflow[iMod, iScen, iStage, :] #Servono solo i primi 55 e no 56 da concatenare dello scenario 101
+        Inflow_new[iMod, iScen, start_idx:end_idx] = Inflow[iMod, iScen, iStage, :] 
       end
     end
-    Price_new[iScen, 2856:2910] = Price[iScen+1, 1, 1:55] #Price_new[iScen, 2912:2967]
+    Price_new[iScen, 2913:2967] = Price[iScen+1, 1, 1:55] 
     for iMod = 1:HY.NMod
-      Inflow_new[iMod, iScen, 2856:2910] = Inflow[iMod, iScen+1, 1, 1:55] #Inflow_new[iMod, iScen, 2912:2967]
+      Inflow_new[iMod, iScen, 2913:2967] = Inflow[iMod, iScen+1, 1, 1:55] 
     end
   end
 
@@ -393,13 +389,13 @@ function sim(
 
         SP = update_future_value_constraint_sim(                                                          
           SP,
-          AlphaTable,
+          AlphaTable_new,
           NSeg,
-          NSimScen,
+          iScen,
           j,
         )
 
-        notConvex = isNotConvex(WVTable[j, scenStates[iScen][t], :, :])                                       # Controlla la WVTable perche' derivata di FV
+        notConvex = isNotConvex(WVTable_new[iScen, j, :, :])                                       # Controlla la WVTable perche' derivata di FV
         if notConvex                                            
           if solveMIP                                                                                        
             if HY.NMod == 2                                                                                   
@@ -425,25 +421,25 @@ function sim(
 
       @timeit to "Collecting results" begin                                                                 # Raccolgo i risultati                                                      
 
-        obj[iScen,t] = JuMP.objective_value(SP.model)                                                         # Per ogni scenario , calcolo la funzione obiettivo alpha
-        alpha[iScen,t] = JuMP.value(SP.alpha)
+        obj[iScen,j] = JuMP.objective_value(SP.model)                                                         # Per ogni scenario , calcolo la funzione obiettivo alpha
+        alpha[iScen,j] = JuMP.value(SP.alpha)
 
         for iMod = 1:HY.NMod                                                                                # Per ogni reservoir
-          price[iMod, iScen, t, :] = Price                                                                  # Per ogni modulo. scenario, settimana e step (da 1 a NStep) aggiorno vettore prezzo
+          price[iMod, iScen, j] = subset_price                                                                  # Per ogni modulo. scenario, settimana e step (da 1 a NStep) aggiorno vettore prezzo
           
           for iStep = 1:NStep                                                                               # Per ogni step della settimana , calcolo i seguenti valori:
-            Reservoir[iMod, iScen, t, iStep] = JuMP.value(SP.res[iMod, iStep])
-            Spillage[iMod, iScen, t, iStep] = JuMP.value(SP.spill[iMod, iStep])
-            Production[iMod, iScen, t, iStep] = JuMP.value(SP.prod[iMod, iStep])
-            Q_slack[iMod, iScen, t, iStep] = JuMP.value(SP.q_slack[iMod, iStep])
-            Min_slack[iMod,iScen,t,iStep] = JuMP.value(SP.min_slack[iMod,iStep])
-            Res_slack_pos[iMod,iScen,t,iStep] = JuMP.value(SP.res_slack_pos[iMod,iStep])
-            Res_slack_neg[iMod,iScen,t,iStep] = JuMP.value(SP.res_slack_neg[iMod,iStep])
+            Reservoir[iMod, iScen, j] = JuMP.value(SP.res[iMod, iStep])
+            Spillage[iMod, iScen, j] = JuMP.value(SP.spill[iMod, iStep])
+            Production[iMod, iScen, j] = JuMP.value(SP.prod[iMod, iStep])
+            Q_slack[iMod, iScen, j] = JuMP.value(SP.q_slack[iMod, iStep])
+            Min_slack[iMod, iScen, j] = JuMP.value(SP.min_slack[iMod,iStep])
+            Res_slack_pos[iMod, iScen, j] = JuMP.value(SP.res_slack_pos[iMod,iStep])
+            Res_slack_neg[iMod, iScen, j] = JuMP.value(SP.res_slack_neg[iMod,iStep])
 
             for iSeg = 1:(HY.NDSeg[iMod]-1)
-              disSeg[iMod][iScen, t, iStep, iSeg] = JuMP.value(SP.disSeg[iMod, iSeg, iStep])
+              disSeg[iMod][iScen, j, iSeg] = JuMP.value(SP.disSeg[iMod, iSeg, iStep])
             end
-            totDischarge[iMod, iScen, t, iStep] = sum(disSeg[iMod][iScen, t, iStep, :])
+            totDischarge[iMod, iScen, j] = sum(disSeg[iMod][iScen, t, iStep, :])
 
 #            disSeg[iMod][iScen, t, iStep] = JuMP.value(SP.disSeg[iMod, iStep])
 #            totDischarge[iMod, iScen, t, iStep] = sum(disSeg[iMod][iScen, t, iStep])
@@ -453,39 +449,39 @@ function sim(
             end
             totPumped[iScen,t,iStep]=sum(disSegPump[iScen,t,iStep,:])=#
             
-            disSegPump[iScen, t , iStep] = JuMP.value(SP.disSegPump[iStep])
-            totPumped[iScen,t,iStep]= disSegPump[iScen,t,iStep]                                           # Mettere somma se vengono aggiunti punti
+            disSegPump[iScen, j] = JuMP.value(SP.disSegPump[iStep])
+            totPumped[iScen, j]= disSegPump[iScen,t,iStep]                                           # Mettere somma se vengono aggiunti punti
 
-            By_pass[iMod,iScen,t,iStep] =JuMP.value(SP.by_pass[iMod,iStep])                               # Variabile By_pass che tiene conto del deflusso minimo ambientale
+            By_pass[iMod, iScen, j] =JuMP.value(SP.by_pass[iMod,iStep])                               # Variabile By_pass che tiene conto del deflusso minimo ambientale
 
-            Pumping[iMod,iScen,t,iStep]= JuMP.value(SP.pump[iMod,iStep])
+            Pumping[iMod,iScen, j]= JuMP.value(SP.pump[iMod,iStep])
            # Net_production[iMod,iScen,t,iStep]=Production[iMod,iScen,t,iStep]-Pumping[iMod,iScen,t,iStep]
 
-            pumping_costs_timestep[iMod,iScen,t,iStep]=price[iMod,iScen,t,iStep]*Pumping[iMod,iScen,t,iStep]*NHoursStep
-            weekly_pumping_costs[iMod,iScen,t]=weekly_pumping_costs[iMod,iScen,t]+pumping_costs_timestep[iMod,iScen,t,iStep]
+            pumping_costs_timestep[iMod, iScen, j]=price[iMod,iScen, j]*Pumping[iMod,iScen, j]*NHoursStep
+            #weekly_pumping_costs[iMod,iScen,t]=weekly_pumping_costs[iMod,iScen,t]+pumping_costs_timestep[iMod,iScen,t,iStep]
            
-            turbine_profit_timestep[iMod,iScen,t,iStep] = price[iMod,iScen,t,iStep]*Production[iMod,iScen,t,iStep]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
-            weekly_turbine_profit[iMod,iScen,t] = weekly_turbine_profit[iMod,iScen,t]+turbine_profit_timestep[iMod,iScen,t,iStep]
+            turbine_profit_timestep[iMod, iScen, j] = price[iMod,iScen,t,iStep]*Production[iMod,iScen,t,iStep]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
+            #weekly_turbine_profit[iMod,iScen,t] = weekly_turbine_profit[iMod,iScen,t]+turbine_profit_timestep[iMod,iScen,t,iStep]
 
-            inflow[iMod,iScen,t,iStep]= StepFranc[t,iStep] .* scenarios[iScen][t, 1] * HY.Scale[iMod]
+            inflow[iMod,iScen,j]= Inflow_new[iMod, iScen, j]
             
-            Reservoir_round[iMod,iScen,t,iStep] = round(Reservoir[iMod,iScen,t,iStep],digits=2)
+            Reservoir_round[iMod,iScen,j] = round(Reservoir[iMod,iScen,j],digits=2)
 
-            u_pump[iScen, t, iStep] = JuMP.value(SP.u_pump[iStep])
-            u_turb_1[iMod,iScen,t,iStep] = JuMP.value(SP.u_turb_1[iMod,iStep])
-            u_turb_2[iMod,iScen,t,iStep] = JuMP.value(SP.u_turb_2[iMod,iStep])
-            u_turb_3[iMod,iScen,t,iStep] = JuMP.value(SP.u_turb_3[iMod,iStep])
-            u_turb_4[iMod,iScen,t,iStep] = JuMP.value(SP.u_turb_4[iMod,iStep])
+            u_pump[iScen, j] = JuMP.value(SP.u_pump[iStep])
+            u_turb_1[iMod,iScen,j] = JuMP.value(SP.u_turb_1[iMod,iStep])
+            u_turb_2[iMod,iScen,j] = JuMP.value(SP.u_turb_2[iMod,iStep])
+            u_turb_3[iMod,iScen,j] = JuMP.value(SP.u_turb_3[iMod,iStep])
+            u_turb_4[iMod,iScen,j] = JuMP.value(SP.u_turb_4[iMod,iStep])
 
           end
         end
 
         for nU = 1:NSeg[1]
           if HY.NMod == 1
-            gamma[iScen, t, nU] = JuMP.value(SP.gamma[nU])
+            gamma[iScen, j, nU] = JuMP.value(SP.gamma[nU])
           elseif HY.NMod == 2
             for nL = 1:NSeg[2]                 #nL=1:NSeg
-              gamma[iScen, t, nU, nL] = JuMP.value(SP.gamma[nU, nL])
+              gamma[iScen, j, nU, nL] = JuMP.value(SP.gamma[nU, nL])
             end
           end
         end
@@ -494,7 +490,7 @@ function sim(
     end                                                                                                   # End of the stage
   end                                                                                                     # End of Scenarios
 
-  for iMod = 1:HY.NMod
+#=  for iMod = 1:HY.NMod
     for iScen = 1:NSimScen
       for t =1:NStage
 
@@ -508,7 +504,7 @@ function sim(
    
     end    
     end
-  end
+  end=#
 
   println("Sim finished")
   println(MIP_counter, " of ", nProblems, " number of solved problems solved as MIP")
@@ -516,13 +512,13 @@ function sim(
   return Results(
     #Eprofit,
     pumping_costs_timestep,
-    weekly_pumping_costs,
-    annual_cost_each_reservoir_pump,
-    annual_total_cost_pump,
+    #weekly_pumping_costs,
+    #annual_cost_each_reservoir_pump,
+    #annual_total_cost_pump,
     turbine_profit_timestep,
-    weekly_turbine_profit,
-    annual_profit_each_reservoir_turbine,
-    annual_total_profit_turbine,
+    #weekly_turbine_profit,
+    #annual_profit_each_reservoir_turbine,
+    #annual_total_profit_turbine,
     Reservoir,
     Reservoir_round,
     Spillage,

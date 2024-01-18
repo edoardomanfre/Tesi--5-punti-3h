@@ -17,7 +17,7 @@
     MaxIt = 100
 
 #number of simulation scenarios
-    NSimScen = 100
+    NSimScen = 101
 
 #Scenario lattice
     #numbers of samples from which scenario lattice

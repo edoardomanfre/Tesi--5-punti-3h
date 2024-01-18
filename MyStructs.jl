@@ -365,13 +365,13 @@ end
 struct Results
   #Eprofit::Any
   pumping_costs_timestep::Any
-  weekly_pumping_costs::Any
-  annual_cost_each_reservoir_pump::Any
-  annual_total_cost_pump::Any
+  #weekly_pumping_costs::Any
+  #annual_cost_each_reservoir_pump::Any
+  #annual_total_cost_pump::Any
   turbine_profit_timestep::Any
-  weekly_turbine_profit::Any
-  annual_profit_each_reservoir_turbine::Any
-  annual_total_profit_turbine::Any
+  #weekly_turbine_profit::Any
+  #annual_profit_each_reservoir_turbine::Any
+  #annual_total_profit_turbine::Any
   Reservoir::Any
   Reservoir_round::Any
   Spillage::Any
