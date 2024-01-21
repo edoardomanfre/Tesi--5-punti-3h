@@ -425,21 +425,21 @@ function sim(
         alpha[iScen,j] = JuMP.value(SP.alpha)
 
         for iMod = 1:HY.NMod                                                                                # Per ogni reservoir
-          price[iMod, iScen, j] = subset_price                                                                  # Per ogni modulo. scenario, settimana e step (da 1 a NStep) aggiorno vettore prezzo
+          price[iMod, iScen, j] = subset_price[j]                                                                  # Per ogni modulo. scenario, settimana e step (da 1 a NStep) aggiorno vettore prezzo
           
           for iStep = 1:NStep                                                                               # Per ogni step della settimana , calcolo i seguenti valori:
-            Reservoir[iMod, iScen, j] = JuMP.value(SP.res[iMod, iStep])
-            Spillage[iMod, iScen, j] = JuMP.value(SP.spill[iMod, iStep])
-            Production[iMod, iScen, j] = JuMP.value(SP.prod[iMod, iStep])
-            Q_slack[iMod, iScen, j] = JuMP.value(SP.q_slack[iMod, iStep])
-            Min_slack[iMod, iScen, j] = JuMP.value(SP.min_slack[iMod,iStep])
-            Res_slack_pos[iMod, iScen, j] = JuMP.value(SP.res_slack_pos[iMod,iStep])
-            Res_slack_neg[iMod, iScen, j] = JuMP.value(SP.res_slack_neg[iMod,iStep])
+            Reservoir[iMod, iScen, j] = JuMP.value(SP.res[iMod, 1])
+            Spillage[iMod, iScen, j] = JuMP.value(SP.spill[iMod, 1])
+            Production[iMod, iScen, j] = JuMP.value(SP.prod[iMod, 1])
+            Q_slack[iMod, iScen, j] = JuMP.value(SP.q_slack[iMod, 1])
+            Min_slack[iMod, iScen, j] = JuMP.value(SP.min_slack[iMod,1])
+            Res_slack_pos[iMod, iScen, j] = JuMP.value(SP.res_slack_pos[iMod,1])
+            Res_slack_neg[iMod, iScen, j] = JuMP.value(SP.res_slack_neg[iMod,1])
 
             for iSeg = 1:(HY.NDSeg[iMod]-1)
-              disSeg[iMod][iScen, j, iSeg] = JuMP.value(SP.disSeg[iMod, iSeg, iStep])
+              disSeg[iMod][iScen, j, iSeg] = JuMP.value(SP.disSeg[iMod, iSeg, 1])
             end
-            totDischarge[iMod, iScen, j] = sum(disSeg[iMod][iScen, t, iStep, :])
+            totDischarge[iMod, iScen, j] = sum(disSeg[iMod][iScen, 1, :])
 
 #            disSeg[iMod][iScen, t, iStep] = JuMP.value(SP.disSeg[iMod, iStep])
 #            totDischarge[iMod, iScen, t, iStep] = sum(disSeg[iMod][iScen, t, iStep])
@@ -449,29 +449,29 @@ function sim(
             end
             totPumped[iScen,t,iStep]=sum(disSegPump[iScen,t,iStep,:])=#
             
-            disSegPump[iScen, j] = JuMP.value(SP.disSegPump[iStep])
-            totPumped[iScen, j]= disSegPump[iScen,t,iStep]                                           # Mettere somma se vengono aggiunti punti
+            disSegPump[iScen, j] = JuMP.value(SP.disSegPump[1])
+            totPumped[iScen, j]= disSegPump[iScen,j]                                           # Mettere somma se vengono aggiunti punti
 
-            By_pass[iMod, iScen, j] =JuMP.value(SP.by_pass[iMod,iStep])                               # Variabile By_pass che tiene conto del deflusso minimo ambientale
+            By_pass[iMod, iScen, j] =JuMP.value(SP.by_pass[iMod,1])                               # Variabile By_pass che tiene conto del deflusso minimo ambientale
 
-            Pumping[iMod,iScen, j]= JuMP.value(SP.pump[iMod,iStep])
+            Pumping[iMod,iScen, j]= JuMP.value(SP.pump[iMod,1])
            # Net_production[iMod,iScen,t,iStep]=Production[iMod,iScen,t,iStep]-Pumping[iMod,iScen,t,iStep]
 
             pumping_costs_timestep[iMod, iScen, j]=price[iMod,iScen, j]*Pumping[iMod,iScen, j]*NHoursStep
             #weekly_pumping_costs[iMod,iScen,t]=weekly_pumping_costs[iMod,iScen,t]+pumping_costs_timestep[iMod,iScen,t,iStep]
            
-            turbine_profit_timestep[iMod, iScen, j] = price[iMod,iScen,t,iStep]*Production[iMod,iScen,t,iStep]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
+            turbine_profit_timestep[iMod, iScen, j] = subset_price[j]*Production[iMod,iScen,j]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
             #weekly_turbine_profit[iMod,iScen,t] = weekly_turbine_profit[iMod,iScen,t]+turbine_profit_timestep[iMod,iScen,t,iStep]
 
-            inflow[iMod,iScen,j]= Inflow_new[iMod, iScen, j]
+            inflow[iMod,iScen,j] = Inflow_new[iMod, iScen, j]
             
             Reservoir_round[iMod,iScen,j] = round(Reservoir[iMod,iScen,j],digits=2)
 
-            u_pump[iScen, j] = JuMP.value(SP.u_pump[iStep])
-            u_turb_1[iMod,iScen,j] = JuMP.value(SP.u_turb_1[iMod,iStep])
-            u_turb_2[iMod,iScen,j] = JuMP.value(SP.u_turb_2[iMod,iStep])
-            u_turb_3[iMod,iScen,j] = JuMP.value(SP.u_turb_3[iMod,iStep])
-            u_turb_4[iMod,iScen,j] = JuMP.value(SP.u_turb_4[iMod,iStep])
+            u_pump[iScen, j] = JuMP.value(SP.u_pump[1])
+            u_turb_1[iMod,iScen,j] = JuMP.value(SP.u_turb_1[iMod,1])
+            u_turb_2[iMod,iScen,j] = JuMP.value(SP.u_turb_2[iMod,1])
+            u_turb_3[iMod,iScen,j] = JuMP.value(SP.u_turb_3[iMod,1])
+            u_turb_4[iMod,iScen,j] = JuMP.value(SP.u_turb_4[iMod,1])
 
           end
         end
