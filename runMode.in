@@ -38,11 +38,11 @@
     ramping_constraints = false
 
 # Additional functionalities
-    production_factors= true
-    water_levels = true
+    production_factors= false
+    water_levels = false
 #    head_variation = true
     general_plots= true
-    save_excel = true
+    save_excel = false
     error_evaluation = false
     
 

@@ -383,7 +383,7 @@ struct Results
   disSeg::Any
   totDischarge::Any
   totPumped::Any
-  resInit::Any
+  #resInit::Any
   inflow::Any
   price::Any
   obj::Any
