@@ -7,12 +7,12 @@
     hydroSystemFromFile = true
 
     # Make new, else from jld file
-    createMarkovModel = true
+    createMarkovModel = false
 
-    drawScenarios = true		
+    drawScenarios = false		
     drawOutofSampleScen = false
     # from previous result files
-    useScenariosFromDataStorage = false
+    useScenariosFromDataStorage = true
     # from input file
     useHistoricScen = false
 
@@ -42,7 +42,7 @@
     water_levels = false
 #    head_variation = true
     general_plots= true
-    save_excel = false
+    save_excel = true
     error_evaluation = false
     
 

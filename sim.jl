@@ -58,7 +58,7 @@ function newTable(
   AlphaTable_new = zeros(NSimScen, NStep * NStage, length(ResSeg))
   WVTable_new = zeros(NSimScen, NStep * NStage, length(ResSeg), HY.NMod) 
 
-  for iScen = 1:NSimScen 
+  for iScen = 1:NSimScen
     for t = 1:NStage
       for iStep = 1:NStep 
         Price[iScen, t, iStep] = scenarios[iScen][t, 2] .* PriceScale[t, iStep]
@@ -67,7 +67,7 @@ function newTable(
   end
 
   for iMod = 1:HY.NMod
-    for iScen = 1:NSimScen 
+    for iScen = 1:NSimScen
       for t = 1:NStage 
         for iStep = 1:NStep
           Inflow[iMod, iScen, t, iStep] = StepFranc[t,iStep] .* scenarios[iScen][t, 1] * HY.Scale[iMod]
@@ -154,11 +154,11 @@ function sim(
   Eprofit = zeros(NStage)                                                      # Creo matrici e le inizializzo a zero
   
   pumping_costs_timestep=zeros(HY.NMod,NSimScen,NStage*NStep)                  # Cost for pumping at each time step
-  weekly_pumping_costs=zeros(HY.NMod,NSimScen,NStage)                          # Cost of pumping each week
+  Step_pumping_costs=zeros(HY.NMod,NSimScen,NStage*NStep)                          # Cost of pumping each week
   annual_cost_each_reservoir_pump =zeros(HY.NMod,NSimScen)                     
   annual_total_cost_pump =zeros(NSimScen)
   turbine_profit_timestep = zeros(HY.NMod,NSimScen,NStage*NStep)               
-  weekly_turbine_profit = zeros(HY.NMod,NSimScen,NStage)
+  Step_turbine_profit = zeros(HY.NMod,NSimScen,NStage*NStep)
   annual_profit_each_reservoir_turbine = zeros(HY.NMod,NSimScen)
   annual_total_profit_turbine = zeros(NSimScen)
   
@@ -320,7 +320,7 @@ function sim(
 
             #for n=1:(HY.N_min_flows[iMod]-1)                                      #Cambio il valore di qMin: per determinate settimane ho valori diversi da 0
             #  HY.qMin[iMod]= HY.Min_flows[iMod,n]
-            JuMP.set_normalized_rhs(SP.q_min[iMod, iStep], HY.qMin[iMod,1])
+            JuMP.set_normalized_rhs(SP.q_min[iMod, iStep], HY.Min_flows[iMod,1])
             #end
 
             #=if iMod==1 && ramping_constraints  &&  iStep>1    #Ramping constrains sono solo sul bacino superiore                                  #iMod==1 && 
@@ -333,7 +333,7 @@ function sim(
             if j == 1                                                       
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
-                HY.ResInit0[iMod] + Inflow_new[iMod, iScen, j]
+                HY.ResInit0[iMod] + Inflow_new[iMod, iScen, j],
               ) #StepFranc
             else                                                                 
               JuMP.set_normalized_rhs(
@@ -345,7 +345,8 @@ function sim(
             if j == 1                                                            
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
-                Reservoir[iMod, iScen-1, end] + Inflow_new[iMod, iScen-1, j], 
+                #Reservoir[iMod, iScen-1, end] + Inflow_new[iMod, iScen-1, j], 
+                HY.ResInit0[iMod] + Inflow_new[iMod, iScen, j],
               ) 
             else
               JuMP.set_normalized_rhs(
@@ -445,7 +446,7 @@ function sim(
           for iSeg = 1:(HY.NDSeg[iMod]-1)
             disSeg[iMod][iScen, j, iSeg] = JuMP.value(SP.disSeg[iMod, iSeg, 1])
           end
-          totDischarge[iMod, iScen, j] = sum(disSeg[iMod][iScen, 1, :])
+          totDischarge[iMod, iScen, j] = sum(disSeg[iMod][iScen, j, :])
 
 #            disSeg[iMod][iScen, t, iStep] = JuMP.value(SP.disSeg[iMod, iStep])
 #            totDischarge[iMod, iScen, t, iStep] = sum(disSeg[iMod][iScen, t, iStep])
@@ -464,10 +465,10 @@ function sim(
           # Net_production[iMod,iScen,t,iStep]=Production[iMod,iScen,t,iStep]-Pumping[iMod,iScen,t,iStep]
 
           pumping_costs_timestep[iMod, iScen, j]= Price_new[iScen,j]*Pumping[iMod,iScen, j]*NHoursStep
-          #weekly_pumping_costs[iMod,iScen,t]=weekly_pumping_costs[iMod,iScen,t]+pumping_costs_timestep[iMod,iScen,t,iStep]
+          Step_pumping_costs[iMod,iScen,j]=Step_pumping_costs[iMod,iScen,j]+pumping_costs_timestep[iMod,iScen,j]
           
           turbine_profit_timestep[iMod, iScen, j] = Price_new[iScen,j]*Production[iMod,iScen,j]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
-          #weekly_turbine_profit[iMod,iScen,t] = weekly_turbine_profit[iMod,iScen,t]+turbine_profit_timestep[iMod,iScen,t,iStep]
+          Step_turbine_profit[iMod,iScen,j] = Step_turbine_profit[iMod,iScen,j]+turbine_profit_timestep[iMod,iScen,j]
 
           inflow[iMod,iScen,j] = Inflow_new[iMod, iScen, j]
           
@@ -496,21 +497,21 @@ function sim(
     end                                                                                                   # End of the stage
   end                                                                                                     # End of Scenarios
 
-#=  for iMod = 1:HY.NMod
+  for iMod = 1:HY.NMod
     for iScen = 1:NSimScen
-      for t =1:NStage
+      for j = 1:NStage*NStep
 
       # PRODUCTION FROM TURBINE
-      annual_profit_each_reservoir_turbine[iMod,iScen] = annual_profit_each_reservoir_turbine[iMod,iScen]+weekly_turbine_profit[iMod,iScen,t]
-      annual_total_profit_turbine[iScen]= annual_profit_each_reservoir_turbine[1,iScen]+annual_profit_each_reservoir_turbine[2,iScen]
+      annual_profit_each_reservoir_turbine[iMod,iScen] = annual_profit_each_reservoir_turbine[iMod,iScen] + Step_turbine_profit[iMod,iScen,j]
+      annual_total_profit_turbine[iScen]= annual_profit_each_reservoir_turbine[1,iScen] + annual_profit_each_reservoir_turbine[2,iScen]
       
       # POWER AND COST FOR PUMP
-      annual_cost_each_reservoir_pump[iMod,iScen] = annual_cost_each_reservoir_pump[iMod,iScen]+weekly_pumping_costs[iMod,iScen,t]
-      annual_total_cost_pump[iScen]= annual_cost_each_reservoir_pump[1,iScen] +annual_cost_each_reservoir_pump[2,iScen]
+      annual_cost_each_reservoir_pump[iMod,iScen] = annual_cost_each_reservoir_pump[iMod,iScen] + Step_pumping_costs[iMod,iScen,j]
+      annual_total_cost_pump[iScen]= annual_cost_each_reservoir_pump[1,iScen] + annual_cost_each_reservoir_pump[2,iScen]
    
     end    
     end
-  end=#
+  end
 
   println("Sim finished")
   println(MIP_counter, " of ", nProblems, " number of solved problems solved as MIP")
@@ -518,13 +519,13 @@ function sim(
   return Results(
     #Eprofit,
     pumping_costs_timestep,
-    #weekly_pumping_costs,
-    #annual_cost_each_reservoir_pump,
-    #annual_total_cost_pump,
+    Step_pumping_costs,
+    annual_cost_each_reservoir_pump,
+    annual_total_cost_pump,
     turbine_profit_timestep,
-    #weekly_turbine_profit,
-    #annual_profit_each_reservoir_turbine,
-    #annual_total_profit_turbine,
+    Step_turbine_profit,
+    annual_profit_each_reservoir_turbine,
+    annual_total_profit_turbine,
     Reservoir,
     Reservoir_round,
     Spillage,

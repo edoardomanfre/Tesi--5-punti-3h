@@ -35,7 +35,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
     concatenation_disSeg_3 = zeros(HY.NMod, NSimScen, NStep * NStage)
     concatenation_disSeg_4 = zeros(HY.NMod, NSimScen, NStep * NStage)
     concatenation_head = zeros(HY.NMod, NSimScen, NStep * NStage)
-    concatenation_coeff = zeros(HY.NMod, NSimScen, NStage * (HY.NDSeg[1]-1))
+    #concatenation_coeff = zeros(HY.NMod, NSimScen, NStage * (HY.NDSeg[1]-1))
     
     for iMod = 1:HY.NMod
         for iScen = 1:NSimScen
@@ -59,6 +59,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
             concatenation_disSeg_2[iMod, iScen, :] = ResultsSim.disSeg[iMod][iScen, :, 2]
             concatenation_disSeg_3[iMod, iScen, :] = ResultsSim.disSeg[iMod][iScen, :, 3]
             concatenation_disSeg_4[iMod, iScen, :] = ResultsSim.disSeg[iMod][iScen, :, 4]
+            concatenation_head[iMod, iScen, :] = ResultsSim.Salto[iMod, iScen, :]
         end
     end
 
@@ -98,7 +99,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
         DisSeg_2 = DataFrame()
         DisSeg_3 = DataFrame()
         DisSeg_4 = DataFrame()
-        #Head = DataFrame()
+        Head = DataFrame()
         #Coeff = DataFrame()
 
         for iStep = NStage * NStep
@@ -123,7 +124,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
                 DisSeg_2[!, "Reservoir_$iMod"] = concatenation_disSeg_2[iMod, i, :]
                 DisSeg_3[!, "Reservoir_$iMod"] = concatenation_disSeg_3[iMod, i, :]
                 DisSeg_4[!, "Reservoir_$iMod"] = concatenation_disSeg_4[iMod, i, :]
-                #Head[!, "Salto_$iMod"] = concatenation_head[iMod, i, :]
+                Head[!, "Salto_$iMod"] = concatenation_head[iMod, i, :]
                 #Coeff[!, "Salto_$iMod"] = concatenation_coeff[iMod, i, :]
             end
         end
@@ -149,7 +150,7 @@ function savePlots(InputParameters::InputParam, ResultsSim::Results)
             DisSeg_2 = (collect(DataFrames.eachcol(DisSeg_2)), DataFrames.names(DisSeg_2)),
             DisSeg_3 = (collect(DataFrames.eachcol(DisSeg_3)), DataFrames.names(DisSeg_3)),
             DisSeg_4 = (collect(DataFrames.eachcol(DisSeg_4)), DataFrames.names(DisSeg_4)),
-            #Head = (collect(DataFrames.eachcol(Head)), DataFrames.names(Head)),
+            Head = (collect(DataFrames.eachcol(Head)), DataFrames.names(Head)),
             #Coeff = (collect(DataFrames.eachcol(Coeff)), DataFrames.names(Coeff))
         )
     end

@@ -43,7 +43,7 @@ function data_saving(runMode, SimScen, InputParameters)                         
 
     # SAVING DATA FOR WEEK 
 
-    folder= "Weeks"
+    #=folder= "Weeks"
     mkdir(folder)
     cd(folder)
 
@@ -157,31 +157,44 @@ function data_saving(runMode, SimScen, InputParameters)                         
         Spillage_lower_m3s =(collect(DataFrames.eachcol(Spillage_lower)),DataFrames.names(Spillage_lower))
         )
 
-    end 
+    end =#
 
-    cd(main)
+    #cd(main)
    
     #SAVING PRODUCTION AND REVEUE VALUES
 
     prod= DataFrame();
-    Production_factor_upper = DataFrame()
+    #=Production_factor_upper = DataFrame()
     Production_factor_lower = DataFrame()
-    Production_factor_pump = DataFrame()
+    Production_factor_pump = DataFrame()=#
 
     total_turbine_production=zeros(HY.NMod,NSimScen)
     total_pump_power = zeros(HY.NMod,NSimScen)
     total_profit_turbine = zeros(HY.NMod,NSimScen)
     total_cost_pump = zeros(HY.NMod,NSimScen)
+
+    y = zeros(HY.NMod,NSimScen)
+    w = zeros(HY.NMod,NSimScen)
+    z = zeros(HY.NMod,NSimScen)
         
     for iScen=1:NSimScen
         for iMod=1:HY.NMod
-            for iStage=1:NStage
-                for iStep=1:NStep
-                    total_turbine_production[iMod,iScen]=total_turbine_production[iMod,iScen]+ResultsSim.Production[iMod,iScen,iStage,iStep]*NHoursStep
-                    total_pump_power[iMod,iScen] = total_pump_power[iMod,iScen]+ ResultsSim.Pumping[iMod,iScen,iStage,iStep]*NHoursStep
-                    total_profit_turbine[iMod,iScen] = total_profit_turbine[iMod,iScen]+ ResultsSim.turbine_profit_timestep[iMod,iScen,iStage,iStep]
-                    total_cost_pump[iMod,iScen]= total_cost_pump[iMod,iScen]+ResultsSim.pumping_costs_timestep[iMod,iScen,iStage,iStep]
-                end    
+            for j=1:NStage*NStep
+                total_turbine_production[iMod,iScen]=total_turbine_production[iMod,iScen]+ResultsSim.Production[iMod,iScen,j]*NHoursStep
+                total_pump_power[iMod,iScen] = total_pump_power[iMod,iScen]+ ResultsSim.Pumping[iMod,iScen,j]*NHoursStep
+                total_profit_turbine[iMod,iScen] = total_profit_turbine[iMod,iScen]+ ResultsSim.turbine_profit_timestep[iMod,iScen,j]
+                total_cost_pump[iMod,iScen]= total_cost_pump[iMod,iScen]+ResultsSim.pumping_costs_timestep[iMod,iScen,j]
+                if ResultsSim.Production[1,iScen,j] != 0
+                    y[1,iScen] = y[1,iScen] + 1
+                end
+
+                if ResultsSim.Production[2,iScen,j] != 0
+                    w[2, iScen] = w[2, iScen] + 1
+                end
+
+                if ResultsSim.Pumping[1,iScen,j] != 0
+                    z[1,iScen] = z[1,iScen] + 1
+                end   
             end
         end
     end
@@ -190,13 +203,16 @@ function data_saving(runMode, SimScen, InputParameters)                         
 
     prod[!,"Production_turbine_upper [MWh]"]= total_turbine_production[1,:];
     prod[!,"Profit_turbine_upper [€]"] = total_profit_turbine[1,:];
+    prod[!,"Hours_turbine_upper [h]"] = y[1,:];
     prod[!,"Power_for_pump [MWh]"] = total_pump_power[1,:];
     prod[!,"Cost for pump [€]"] = total_cost_pump[1,:];
+    prod[!,"Hours_pump [h]"] = z[1,:];
     prod[!,"Production_turbine_lower [MWh]"] = total_turbine_production[2,:];
     prod[!,"Profit_turbine_lower [€]"] = total_profit_turbine[2,:];
+    prod[!,"Hours_turbine_lower [h]"] = w[2, :];
     
 
-    Production_factor_upper[!,"Scenario"]=1:1:NSimScen;
+    #=Production_factor_upper[!,"Scenario"]=1:1:NSimScen;
     Production_factor_lower[!,"Scenario"]=1:1:NSimScen;
     Production_factor_pump[!,"Scenario"]=1:1:NSimScen;
 
@@ -206,20 +222,20 @@ function data_saving(runMode, SimScen, InputParameters)                         
         Production_factor_upper[!,range1[i]] = Production_factors.nsteps_turbines[1,:,i]
         Production_factor_lower[!,range1[i]]= Production_factors.nsteps_turbines[2,:,i]
         Production_factor_pump[!,range1[i]] = Production_factors.nsteps_pumps[1,:,i]
-    end
+    end=#
 
     XLSX.writetable("Yearly_production.xlsx",overwrite=true,
     Production=(collect(DataFrames.eachcol(prod)),DataFrames.names(prod)),
-    Production_factor_upper=(collect(DataFrames.eachcol(Production_factor_upper)),DataFrames.names(Production_factor_upper)),
-    Production_factor_lower=(collect(DataFrames.eachcol(Production_factor_lower)),DataFrames.names(Production_factor_lower)),
-    Production_factor_pump=(collect(DataFrames.eachcol(Production_factor_pump)),DataFrames.names(Production_factor_pump))
+    #Production_factor_upper=(collect(DataFrames.eachcol(Production_factor_upper)),DataFrames.names(Production_factor_upper)),
+    #Production_factor_lower=(collect(DataFrames.eachcol(Production_factor_lower)),DataFrames.names(Production_factor_lower)),
+    #Production_factor_pump=(collect(DataFrames.eachcol(Production_factor_pump)),DataFrames.names(Production_factor_pump))
     )
 
     cd(main)
 
     #SAVING WATER LEVEL VARIATIONS FREQUENCIES
 
-    frequency_allScenarios_upper=DataFrame()
+    #=frequency_allScenarios_upper=DataFrame()
     frequency_allScenarios_lower=DataFrame()
     frequency_allScenarios_upper[!,"Scenarios"] = 1:1:NSimScen
     frequency_allScenarios_lower[!,"Scenarios"] = 1:1:NSimScen
@@ -236,7 +252,7 @@ function data_saving(runMode, SimScen, InputParameters)                         
     Lower_level_frequencies=(collect(DataFrames.eachcol(frequency_allScenarios_lower)),DataFrames.names(frequency_allScenarios_lower)),
     )
  
-    cd(main)        
+    cd(main)=#        
     
     #SAVING WATER VALUES
 
