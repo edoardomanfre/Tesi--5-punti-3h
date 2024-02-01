@@ -333,12 +333,12 @@ function sim(
             if j == 1                                                       
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
-                HY.ResInit0[iMod] + Inflow_new[iMod, iScen, j],
+                HY.ResInit0[iMod] + subset_inflow[iMod, 1],
               ) #StepFranc
             else                                                                 
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
-                Reservoir[iMod, iScen, j-1] + Inflow_new[iMod, iScen, j],
+                Reservoir[iMod, iScen, j-1] + subset_inflow[iMod, 1],
               ) 
             end
           else 
@@ -346,12 +346,12 @@ function sim(
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
                 #Reservoir[iMod, iScen-1, end] + Inflow_new[iMod, iScen-1, j], 
-                HY.ResInit0[iMod] + Inflow_new[iMod, iScen, j],
+                HY.ResInit0[iMod] + subset_inflow[iMod, 1],
               ) 
             else
               JuMP.set_normalized_rhs(
                 SP.resbalInit[iMod],
-                Reservoir[iMod, iScen, j-1] + Inflow_new[iMod, iScen, j],
+                Reservoir[iMod, iScen, j-1] + subset_inflow[iMod, 1],
               ) 
             end 
           end                                                                                              #Per tutti gli scenari e tutte le settimane, aggiorno le variabili
@@ -470,7 +470,7 @@ function sim(
           turbine_profit_timestep[iMod, iScen, j] = Price_new[iScen,j]*Production[iMod,iScen,j]*NHoursStep                     #  PROFITTO NETTO A OGNI TIME STEP
           Step_turbine_profit[iMod,iScen,j] = Step_turbine_profit[iMod,iScen,j]+turbine_profit_timestep[iMod,iScen,j]
 
-          inflow[iMod,iScen,j] = Inflow_new[iMod, iScen, j]
+          inflow[iMod,iScen,j] = subset_inflow[iMod, 1]
           
           Reservoir_round[iMod,iScen,j] = round(Reservoir[iMod,iScen,j],digits=2)
 

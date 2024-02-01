@@ -105,13 +105,22 @@ function head_evaluation(
                 end
             else
                 if j == 1
-                    if Reservoir_round[iMod,iScen-1,end] == water_volumes_file[iMod,n]
+                    #=if Reservoir_round[iMod,iScen-1,end] == water_volumes_file[iMod,n]
                         Level[iMod] = water_levels_file[iMod,n]
                     elseif Reservoir_round[iMod,iScen-1,end]> water_volumes_file[iMod,n] && Reservoir_round[iMod,iScen-1,end]< water_volumes_file[iMod,n+1]
                         Level[iMod] = (water_levels_file[iMod,n+1]-water_levels_file[iMod,n])/(water_volumes_file[iMod,n+1]-water_volumes_file[iMod,n])*(Reservoir_round[iMod,iScen-1,end]-water_volumes_file[iMod,n])+water_levels_file[iMod,n]
                     end
 
                     if Reservoir_round[iMod,iScen-1,end] == water_volumes_file[iMod,Int(NVolumes[iMod])] 
+                        Level[iMod] = water_levels_file[iMod,Int(NVolumes[iMod])]
+                    end=#
+                    if HY.ResInit0[iMod] == water_volumes_file[iMod,n]
+                        Level[iMod] = water_levels_file[iMod,n]
+                    elseif HY.ResInit0[iMod] > water_volumes_file[iMod,n] && HY.ResInit0[iMod] < water_volumes_file[iMod,n+1]
+                        Level[iMod] =(water_levels_file[iMod,n+1]-water_levels_file[iMod,n])/(water_volumes_file[iMod,n+1]-water_volumes_file[iMod,n])*(HY.ResInit0[iMod]-water_volumes_file[iMod,n])+water_levels_file[iMod,n]
+                    end
+
+                    if HY.ResInit0[iMod] == water_volumes_file[iMod,Int(NVolumes[iMod])] 
                         Level[iMod] = water_levels_file[iMod,Int(NVolumes[iMod])]
                     end
 

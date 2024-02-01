@@ -2,7 +2,7 @@
 #problem definition
     NHoursStage = 168
     NStage = 52
-    NSeg = 5 5
+    NSeg = 25 25
     NPrice = 1          
     LimitPump = 2   
 
